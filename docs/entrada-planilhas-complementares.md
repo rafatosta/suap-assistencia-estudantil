@@ -42,4 +42,4 @@ A planilha oficial deve corresponder ao mesmo edital do complementar. O processa
 - Informar todos os valores de um campo na mesma célula; não criar uma linha para cada auxílio.
 - Guardar os arquivos originais sem alterações. Se precisar corrigir dados, trabalhe em uma cópia.
 
-O processamento acontece localmente no navegador da extensão. Os arquivos não são enviados a um servidor nem armazenados pela extensão. O resultado é um arquivo derivado, separado das fontes.
+O processamento acontece localmente no navegador da extensão. Para sobreviver ao fechamento e à reabertura do painel, os dois arquivos selecionados e o resultado ficam armazenados no IndexedDB deste navegador até a pessoa clicar em “Limpar arquivos”. Nenhum conteúdo é enviado a um servidor. O resultado baixado é um arquivo derivado, separado das fontes.
