@@ -183,7 +183,7 @@ export default function App() {
               </p>
             )}
             <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadResult}>
-              Baixar resultado separado (.csv) <span aria-hidden="true">↓</span>
+              Baixar resultado complementar (.csv) <span aria-hidden="true">↓</span>
             </button>
             {result.errorCount > 0 && (
               <button className="feature__button error-download-button" type="button" onClick={downloadErrors}>
