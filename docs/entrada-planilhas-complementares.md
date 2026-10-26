@@ -23,7 +23,7 @@ A extensão recebe dois arquivos:
 - O CSV complementar preenchido.
 - A planilha completa do edital baixada do SUAP, em XLS ou XLSX.
 
-A planilha oficial deve corresponder ao mesmo edital do complementar. O processamento é somente leitura: as entradas não são modificadas, normalizadas no próprio arquivo, renomeadas nem sobrescritas. A extensão gera um novo CSV de resultado, mantendo os dados complementares e acrescentando os campos do registro oficial encontrado.
+A planilha oficial deve corresponder ao mesmo edital do complementar. O processamento é somente leitura: as entradas não são modificadas, normalizadas no próprio arquivo, renomeadas nem sobrescritas. A extensão gera dois arquivos derivados: um CSV de resultado complementar com todos os registros e os campos oficiais encontrados; e, quando houver pendências, um CSV separado apenas com os registros que precisam de correção ou conferência.
 
 ## Como a busca funciona
 
@@ -31,7 +31,9 @@ A planilha oficial deve corresponder ao mesmo edital do complementar. O processa
 - Sem identificador, a busca compara o nome completo ignorando diferenças de acentuação, caixa e pontuação.
 - Se houver homônimos, um curso/turma igual pode resolver a correspondência. Se permanecer mais de uma possibilidade, o registro é marcado como ambíguo e nenhum dado oficial é atribuído.
 - A planilha oficial pode juntar nome e matrícula em uma célula, por exemplo `Nome do estudante (20262EC...)`. A extensão separa a parte entre parênteses quando ela contém números, registra a matrícula extraída e também preserva os valores originais das colunas oficiais no resultado.
-- Registros sem correspondência, com identificador não encontrado ou com nome divergente permanecem no resultado, com o status explicado e os campos oficiais vazios. Revise esses casos manualmente.
+- Registros sem correspondência, com identificador não encontrado, com nome divergente, sem nome obrigatório ou com mais de uma correspondência permanecem no resultado completo, com status e campos oficiais vazios.
+- Um segundo arquivo, `erros-complementares.csv`, lista somente esses registros e inclui o motivo, uma orientação para correção e, quando aplicável, os possíveis registros oficiais com nome, matrícula, inscrição e curso/turma.
+- Corrija a planilha complementar original ou uma cópia e processe novamente. O relatório de erros é apenas uma referência; ele não altera nenhum arquivo de entrada.
 
 ## Regras para quem preenche
 
