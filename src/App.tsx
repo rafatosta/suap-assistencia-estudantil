@@ -79,14 +79,21 @@ export default function App() {
     }
   }
 
-  function downloadResult() {
-    if (!result) return;
-    const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv;charset=utf-8" }));
+  function downloadCsv(csv: string, filename: string) {
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "resultado-complementar.csv";
+    link.download = filename;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadResult() {
+    if (result) downloadCsv(result.csv, "resultado-complementar.csv");
+  }
+
+  function downloadErrors() {
+    if (result) downloadCsv(result.errorsCsv, "erros-complementares.csv");
   }
 
   async function startOver() {
@@ -166,17 +173,23 @@ export default function App() {
           <div className="validation" role="status">
             <p>
               {result.matchedCount} de {result.totalCount} estudante(s) encontrado(s).
-              {result.ambiguousCount > 0 && ` ${result.ambiguousCount} correspondência(s) ambígua(s) precisam de conferência.`}
+              {result.errorCount > 0 && ` ${result.errorCount} registro(s) precisam de conferência; ${result.ambiguousCount} com correspondências ambíguas.`}
+              {result.errorCount === 0 && " Nenhum erro encontrado."}
             </p>
             {result.notFoundCount > 0 && (
               <p className="validation__detail">
-                {result.notFoundCount} registro(s) sem correspondência única. Confira a coluna
-                “Resultado da busca” no arquivo gerado.
+                {result.notFoundCount} registro(s) sem correspondência única. Baixe o relatório de erros
+                para ver o motivo e as possíveis correspondências.
               </p>
             )}
             <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadResult}>
               Baixar resultado separado (.csv) <span aria-hidden="true">↓</span>
             </button>
+            {result.errorCount > 0 && (
+              <button className="feature__button error-download-button" type="button" onClick={downloadErrors}>
+                Baixar planilha de erros ({result.errorCount}) <span aria-hidden="true">↓</span>
+              </button>
+            )}
             <button className="clear-button" type="button" onClick={startOver}>
               Limpar arquivos e começar outro edital
             </button>
