@@ -26,7 +26,7 @@ Na planilha oficial, o campo Nome pode conter o nome do estudante e a matrícula
 
 ## Proteção das fontes e privacidade
 
-As duas planilhas selecionadas são lidas localmente, em memória, e não são alteradas, renomeadas, normalizadas no próprio arquivo ou sobrescritas. O resultado é baixado como um novo arquivo CSV, sem substituir nenhuma entrada. O conteúdo não é enviado a servidores pela extensão.
+As duas planilhas selecionadas são lidas localmente e não são alteradas, renomeadas, normalizadas no próprio arquivo ou sobrescritas. Para sobreviver ao fechamento e à reabertura do painel, os arquivos e o resultado ficam guardados no IndexedDB deste navegador até a pessoa clicar em limpar. O resultado é baixado como um novo arquivo CSV, sem substituir nenhuma entrada. Nenhum conteúdo é enviado a servidores pela extensão.
 
 As amostras oficiais n10.xls e n11.xls analisadas têm uma aba (Planilha1) e colunas como Nome, Campus do Curso, Número da Inscrição, Situação da Inscrição, Auxílios solicitados, Detalhamento, Motivo, histórico de auxílios/bolsas e Situação do Resultado. O arquivo de outros editais pode ter pequenas diferenças; a extensão procura a tabela pelos cabeçalhos e interrompe o processamento quando não reconhece o formato.
 
