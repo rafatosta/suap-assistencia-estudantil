@@ -117,6 +117,17 @@ h1 {
   font-size: 12px !important;
 }
 
+.feature__notice {
+  margin-top: 10px !important;
+  padding: 9px 10px;
+  border-left: 3px solid #b06000;
+  border-radius: 4px;
+  background: #fef7e0;
+  color: #6f4b00 !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
 .upload {
   display: block;
   margin-top: 14px;
