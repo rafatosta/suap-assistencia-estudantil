@@ -23,6 +23,7 @@ type OfficialRecord = {
   name: string;
   normalizedName: string;
   extractedEnrollment: string;
+  registration: string;
   identifiers: Set<string>;
   course: string;
 };
@@ -36,9 +37,11 @@ type OfficialTable = {
 
 export type MatchResult = {
   csv: string;
+  errorsCsv: string;
   matchedCount: number;
   notFoundCount: number;
   ambiguousCount: number;
+  errorCount: number;
   totalCount: number;
 };
 
@@ -231,6 +234,10 @@ function readOfficialWorkbook(buffer: ArrayBuffer): OfficialTable {
         name,
         normalizedName: normalizeName(name),
         extractedEnrollment: enrollment,
+        registration: identifierIndexes
+          .filter((index) => normalizedHeaders[index].includes("numerodainscricao") || normalizedHeaders[index] === "inscricao")
+          .map((index) => values[index])
+          .find(Boolean) ?? "",
         identifiers,
         course: detected.courseIndex < 0 ? "" : values[detected.courseIndex],
       });
@@ -262,11 +269,27 @@ function disambiguateByCourse(records: OfficialRecord[], course: string): Offici
   return records.filter((record) => normalizeName(record.course) === normalizedCourse);
 }
 
+type MatchDecision = {
+  status: string;
+  record: OfficialRecord | null;
+  ambiguous: boolean;
+  detail: string;
+  candidates: OfficialRecord[];
+};
+
 function findOfficialRecord(
   complementary: ComplementaryRecord,
   official: OfficialTable,
-): { status: string; record: OfficialRecord | null; ambiguous: boolean } {
-  if (!complementary.name) return { status: "Nome ausente no complementar", record: null, ambiguous: false };
+): MatchDecision {
+  if (!complementary.name) {
+    return {
+      status: "Nome ausente no complementar",
+      record: null,
+      ambiguous: false,
+      detail: "O nome é obrigatório para localizar o estudante. Preencha o nome completo na planilha complementar.",
+      candidates: [],
+    };
+  }
 
   const normalizedName = normalizeName(complementary.name);
   let candidates: OfficialRecord[];
@@ -275,30 +298,79 @@ function findOfficialRecord(
     const identifier = normalizeIdentifier(complementary.identifier);
     candidates = official.records.filter((record) => record.identifiers.has(identifier));
     if (candidates.length === 0) {
-      return { status: "Identificador não encontrado", record: null, ambiguous: false };
+      return {
+        status: "Identificador não encontrado",
+        record: null,
+        ambiguous: false,
+        detail: "O identificador informado (" + complementary.identifier + ") não aparece na planilha oficial. Confira matrícula/inscrição e confirme que os dois arquivos são do mesmo edital.",
+        candidates: [],
+      };
     }
+
+    const identifierMatches = candidates;
     candidates = candidates.filter((record) => record.normalizedName === normalizedName);
     if (candidates.length === 0) {
-      return { status: "Identificador encontrado, mas nome divergente", record: null, ambiguous: false };
+      return {
+        status: "Identificador encontrado, mas nome divergente",
+        record: null,
+        ambiguous: false,
+        detail: "O identificador existe na planilha oficial, mas está associado a outro nome. Confira se o nome e a matrícula/inscrição pertencem à mesma pessoa.",
+        candidates: identifierMatches,
+      };
     }
   } else {
     candidates = official.records.filter((record) => record.normalizedName === normalizedName);
     if (candidates.length === 0) {
-      return { status: "Não encontrado", record: null, ambiguous: false };
+      return {
+        status: "Não encontrado",
+        record: null,
+        ambiguous: false,
+        detail: "O nome não foi localizado na planilha oficial. Confira a grafia e confirme que os dois arquivos são do mesmo edital.",
+        candidates: [],
+      };
     }
   }
 
   if (candidates.length > 1) {
     const disambiguated = disambiguateByCourse(candidates, complementary.course);
     if (disambiguated.length === 1) {
-      return { status: "Encontrado por nome e curso", record: disambiguated[0], ambiguous: false };
+      return {
+        status: "Encontrado por nome e curso",
+        record: disambiguated[0],
+        ambiguous: false,
+        detail: "",
+        candidates: [],
+      };
     }
-    return { status: `Ambíguo: ${disambiguated.length || candidates.length} correspondências`, record: null, ambiguous: true };
+
+    const possibleRecords = disambiguated.length > 1 ? disambiguated : candidates;
+    return {
+      status: "Ambíguo: " + possibleRecords.length + " correspondências",
+      record: null,
+      ambiguous: true,
+      detail: "Há " + possibleRecords.length + " registros com este nome. Informe matrícula/número de inscrição ou o curso/turma exatamente como aparece no edital para identificar a pessoa.",
+      candidates: possibleRecords,
+    };
   }
 
-  return { status: "Encontrado", record: candidates[0], ambiguous: false };
+  return {
+    status: "Encontrado",
+    record: candidates[0],
+    ambiguous: false,
+    detail: "",
+    candidates: [],
+  };
 }
 
+function describeCandidate(record: OfficialRecord, index: number): string {
+  const details = [
+    record.name,
+    record.extractedEnrollment ? "Matrícula: " + record.extractedEnrollment : "",
+    record.registration ? "Inscrição: " + record.registration : "",
+    record.course ? "Curso/turma: " + record.course : "",
+  ].filter(Boolean);
+  return (index + 1) + ". " + details.join(" | ");
+}
 function csvCell(value: string): string {
   return /[;"\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 }
@@ -342,10 +414,23 @@ export async function matchComplementaryStudents(
 
   let matchedCount = 0;
   let ambiguousCount = 0;
+  const errorRows: string[][] = [];
   const outputRows = complementary.map((entry) => {
     const match = findOfficialRecord(entry, official);
     if (match.record) matchedCount += 1;
     if (match.ambiguous) ambiguousCount += 1;
+
+    if (!match.record) {
+      errorRows.push([
+        String(entry.sourceRow),
+        entry.name,
+        entry.course,
+        entry.identifier,
+        match.status,
+        match.detail,
+        match.candidates.map(describeCandidate).join("\n"),
+      ]);
+    }
 
     return [
       String(entry.sourceRow),
@@ -360,15 +445,26 @@ export async function matchComplementaryStudents(
     ];
   });
 
-  const csv = [outputHeaders, ...outputRows]
-    .map((row) => row.map(csvCell).join(CSV_DELIMITER))
-    .join("\r\n");
-
+  const toCsv = (rows: string[][]) =>
+    rows.map((row) => row.map(csvCell).join(CSV_DELIMITER)).join("\\r\\n");
+  const csv = toCsv([outputHeaders, ...outputRows]);
+  const errorHeaders = [
+    "Registro complementar",
+    "Nome completo do estudante",
+    "Curso ou turma informado",
+    "Matrícula ou número de inscrição informado",
+    "Erro identificado",
+    "Detalhe e orientação",
+    "Possíveis correspondências no edital",
+  ];
+  const errorsCsv = toCsv([errorHeaders, ...errorRows]);
   return {
     csv: `\uFEFF${csv}\r\n`,
+    errorsCsv: `\uFEFF${errorsCsv}\r\n`,
     matchedCount,
     notFoundCount: complementary.length - matchedCount,
     ambiguousCount,
+    errorCount: errorRows.length,
     totalCount: complementary.length,
   };
 }
