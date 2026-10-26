@@ -9,6 +9,9 @@
   "permissions": [
     "sidePanel"
   ],
+  "host_permissions": [
+    "https://suap.ifba.edu.br/*"
+  ],
   "side_panel": {
     "default_path": "index.html"
   },

@@ -46,6 +46,59 @@ export type MatchResult = {
   totalCount: number;
 };
 
+type BankDetails = {
+  bank: string;
+  agency: string;
+  account: string;
+  operation: string;
+};
+
+const BANK_HEADERS = ["Banco", "Agência", "Nº da Conta", "Op"] as const;
+
+function bankDetailsFromHtml(html: string): BankDetails {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  const section = Array.from(document.querySelectorAll("tr")).find((row) =>
+    Array.from(row.querySelectorAll(":scope > td")).some((cell) =>
+      cell.textContent?.trim().replace(/\s+/g, " ") === "Conta Bancária Escolhida",
+    ),
+  );
+  if (!section) throw new Error('A seção "Conta Bancária Escolhida" não foi encontrada.');
+
+  const values = new Map<string, string>();
+  const definitionList = section.querySelector(":scope > td:last-child dl");
+  if (!definitionList) throw new Error('A seção "Conta Bancária Escolhida" não contém os dados bancários.');
+  const terms = Array.from(definitionList.querySelectorAll("dt"));
+  for (const term of terms) {
+    const key = (term.textContent ?? "").trim().replace(/:$/, "").toLocaleLowerCase("pt-BR");
+    const value = term.nextElementSibling?.textContent?.trim() ?? "";
+    values.set(key, value);
+  }
+
+  return {
+    bank: values.get("banco") ?? "",
+    agency: values.get("agência") ?? values.get("agencia") ?? "",
+    account: values.get("conta") ?? "",
+    operation: values.get("operação") ?? values.get("operacao") ?? "",
+  };
+}
+
+async function fetchBankDetails(registration: string): Promise<BankDetails> {
+  if (!registration) throw new Error("Número de inscrição ausente na planilha oficial.");
+  const url = `https://suap.ifba.edu.br/ae/visualizarinscricaoae/${encodeURIComponent(registration)}/`;
+  let response: Response;
+  try {
+    response = await fetch(url, { credentials: "include", cache: "no-store" });
+  } catch {
+    throw new Error("Não foi possível acessar o SUAP. Verifique sua conexão e se está autenticado.");
+  }
+  if (!response.ok) throw new Error(`O SUAP respondeu com erro HTTP ${response.status}.`);
+  const details = bankDetailsFromHtml(await response.text());
+  if (!details.bank && !details.agency && !details.account && !details.operation) {
+    throw new Error('A inscrição foi aberta, mas a seção "Conta Bancária Escolhida" está vazia.');
+  }
+  return details;
+}
+
 function cellText(value: unknown): string {
   return value == null ? "" : String(value).trim();
 }
@@ -395,6 +448,7 @@ function uniqueOfficialHeaders(headers: string[], reserved: Set<string>): string
 export async function matchComplementaryStudents(
   complementaryCsv: string,
   officialFile: File,
+  onBankLookupProgress?: (completed: number, total: number) => void,
 ): Promise<MatchResult> {
   const complementary = parseComplementaryCsv(complementaryCsv);
   const official = readOfficialWorkbook(await officialFile.arrayBuffer());
@@ -403,6 +457,7 @@ export async function matchComplementaryStudents(
     ...COMPLEMENTARY_HEADERS,
     "Resultado da busca",
     "Matrícula extraída do campo Nome",
+    ...BANK_HEADERS,
   ]);
   const officialHeaders = uniqueOfficialHeaders(official.headers, reservedHeaders);
   const outputHeaders = [
@@ -411,6 +466,7 @@ export async function matchComplementaryStudents(
     "Resultado da busca",
     "Matrícula extraída do campo Nome",
     ...officialHeaders,
+    ...BANK_HEADERS,
   ];
 
   let matchedCount = 0;
@@ -419,8 +475,32 @@ export async function matchComplementaryStudents(
   const errorRows: string[][] = [];
   const outputRows: string[][] = [];
 
-  for (const entry of complementary) {
-    const match = findOfficialRecord(entry, official);
+  const decisions = complementary.map((entry) => ({ entry, match: findOfficialRecord(entry, official) }));
+  const recordsToLookup = decisions.flatMap(({ match }) =>
+    match.record ? [match.record] : match.ambiguous ? match.candidates : [],
+  );
+  const registrations = [...new Set(recordsToLookup.map((record) => record.registration).filter(Boolean))];
+  const bankDetailsByRegistration = new Map<string, BankDetails>();
+  const bankErrorsByRegistration = new Map<string, string>();
+  let completedLookups = 0;
+  onBankLookupProgress?.(0, registrations.length);
+  for (let start = 0; start < registrations.length; start += 4) {
+    await Promise.all(registrations.slice(start, start + 4).map(async (registration) => {
+      try {
+        bankDetailsByRegistration.set(registration, await fetchBankDetails(registration));
+      } catch (error) {
+        bankErrorsByRegistration.set(
+          registration,
+          error instanceof Error ? error.message : "Falha ao consultar dados bancários no SUAP.",
+        );
+      } finally {
+        completedLookups += 1;
+        onBankLookupProgress?.(completedLookups, registrations.length);
+      }
+    }));
+  }
+
+  for (const { entry, match } of decisions) {
     const foundRecords = match.record
       ? [match.record]
       : match.ambiguous
@@ -451,6 +531,7 @@ export async function matchComplementaryStudents(
         match.status,
         "",
         ...official.headers.map(() => ""),
+        ...BANK_HEADERS.map(() => ""),
       ]);
       continue;
     }
@@ -459,6 +540,17 @@ export async function matchComplementaryStudents(
       const rowStatus = match.ambiguous
         ? "Correspondência múltipla — entrada " + (index + 1) + " de " + foundRecords.length
         : match.status;
+      const bankDetails = bankDetailsByRegistration.get(record.registration);
+      const bankError = bankErrorsByRegistration.get(record.registration)
+        ?? (!record.registration ? "Número de inscrição ausente na planilha oficial." : "");
+      if (bankError) {
+        errorRows.push([
+          String(entry.sourceRow),
+          entry.name,
+          "Dados bancários não extraídos: " + bankError,
+          record.registration ? "Inscrição: " + record.registration : "",
+        ]);
+      }
       outputRows.push([
         String(entry.sourceRow),
         entry.name,
@@ -469,6 +561,10 @@ export async function matchComplementaryStudents(
         rowStatus,
         record.extractedEnrollment,
         ...record.values,
+        bankDetails?.bank ?? "",
+        bankDetails?.agency ?? "",
+        bankDetails?.account ?? "",
+        bankDetails?.operation ?? "",
       ]);
     });
   }
