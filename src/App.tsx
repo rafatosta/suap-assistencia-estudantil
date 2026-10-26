@@ -1,5 +1,12 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { matchComplementaryStudents, type MatchResult } from "./complementary";
+import {
+  clearDraft,
+  loadDraft,
+  saveComplementaryFile,
+  saveMatchResult,
+  saveOfficialFile,
+} from "./persistence";
 
 const RELATORIO_INSCRICOES_URL = "https://suap.ifba.edu.br/ae/relatorio_alunos_inscritos/";
 const TEMPLATE_URL = "./modelo-planilha-complementar.csv";
@@ -10,17 +17,50 @@ export default function App() {
   const [result, setResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true);
 
-  function handleComplementaryChange(event: ChangeEvent<HTMLInputElement>) {
-    setComplementaryFile(event.target.files?.[0] ?? null);
+  useEffect(() => {
+    let active = true;
+    loadDraft()
+      .then((draft) => {
+        if (!active) return;
+        setOfficialFile(draft.officialFile);
+        setComplementaryFile(draft.complementaryFile);
+        setResult(draft.result);
+      })
+      .catch(() => {
+        if (active) setError("Não foi possível recuperar o trabalho salvo neste dispositivo.");
+      })
+      .finally(() => {
+        if (active) setIsRestoring(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  async function handleComplementaryChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) return;
+    setComplementaryFile(file);
     setResult(null);
     setError("");
+    try {
+      await saveComplementaryFile(file);
+    } catch {
+      setError("O arquivo foi selecionado, mas não pôde ser salvo para recuperação. Mantenha o painel aberto.");
+    }
   }
 
-  function handleOfficialChange(event: ChangeEvent<HTMLInputElement>) {
-    setOfficialFile(event.target.files?.[0] ?? null);
+  async function handleOfficialChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) return;
+    setOfficialFile(file);
     setResult(null);
     setError("");
+    try {
+      await saveOfficialFile(file);
+    } catch {
+      setError("O arquivo foi selecionado, mas não pôde ser salvo para recuperação. Mantenha o painel aberto.");
+    }
   }
 
   async function handleProcess() {
@@ -29,10 +69,8 @@ export default function App() {
     setResult(null);
     setError("");
     try {
-      const match = await matchComplementaryStudents(
-        await complementaryFile.text(),
-        officialFile,
-      );
+      const match = await matchComplementaryStudents(await complementaryFile.text(), officialFile);
+      await saveMatchResult(match);
       setResult(match);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível processar as planilhas.");
@@ -48,7 +86,19 @@ export default function App() {
     link.href = url;
     link.download = "resultado-complementar.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function startOver() {
+    try {
+      await clearDraft();
+      setOfficialFile(null);
+      setComplementaryFile(null);
+      setResult(null);
+      setError("");
+    } catch {
+      setError("Não foi possível limpar os arquivos salvos neste dispositivo.");
+    }
   }
 
   return (
@@ -72,42 +122,41 @@ export default function App() {
       <section className="feature feature--template" aria-labelledby="template-title">
         <h2 id="template-title">Completar dados do edital</h2>
         <p>
-          Para cada processamento, são necessários dois arquivos do mesmo edital:
-          a planilha completa do edital e a planilha complementar preenchida. A extensão
-          procura cada estudante do complementar na planilha do edital e gera um resultado separado.
+          Selecione dois arquivos do mesmo edital. Os arquivos ficam salvos neste dispositivo
+          enquanto você preenche e confere o resultado.
         </p>
         <a className="feature__button feature__button--secondary" href={TEMPLATE_URL} download>
           Baixar modelo complementar (.csv) <span aria-hidden="true">↓</span>
         </a>
         <p className="feature__note">
           O nome do estudante é obrigatório. Curso, matrícula/inscrição, auxílios e observação
-          ajudam a conferir os registros e podem ser preenchidos quando disponíveis.
-          Colunas adicionais do complementar são ignoradas.
+          podem ser preenchidos quando disponíveis. Colunas adicionais do complementar são ignoradas.
         </p>
         <p className="feature__notice" role="note">
-          Use uma planilha complementar por edital e selecione a planilha oficial do mesmo edital.
-          Não misture informações de editais diferentes.
+          Use somente arquivos do mesmo edital. Uma planilha complementar por edital.
         </p>
 
         <label className="upload">
           <span>1. Planilha do edital completa (.xls ou .xlsx)</span>
           <small className="upload__help">Arquivo oficial baixado do SUAP, com os dados completos dos estudantes.</small>
-          <input type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleOfficialChange} />
+          <input type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleOfficialChange} disabled={isRestoring} />
         </label>
-        {officialFile && <p className="file-name">Arquivo do edital: {officialFile.name}</p>}
+        {officialFile && <p className="file-name">Arquivo do edital salvo: {officialFile.name}</p>}
 
         <label className="upload">
           <span>2. Planilha complementar preenchida (.csv)</span>
-          <small className="upload__help">Arquivo preenchido com os estudantes que precisam ter os dados completados.</small>
-          <input type="file" accept=".csv,text/csv" onChange={handleComplementaryChange} />
+          <small className="upload__help">Arquivo com os estudantes que precisam ter os dados completados.</small>
+          <input type="file" accept=".csv,text/csv" onChange={handleComplementaryChange} disabled={isRestoring} />
         </label>
-        {complementaryFile && <p className="file-name">Arquivo complementar: {complementaryFile.name}</p>}
+        {complementaryFile && <p className="file-name">Arquivo complementar salvo: {complementaryFile.name}</p>}
+
+        {isRestoring && <p className="validation__detail" role="status">Recuperando arquivos salvos…</p>}
 
         <button
           className="feature__button process-button"
           type="button"
           onClick={handleProcess}
-          disabled={!complementaryFile || !officialFile || isProcessing}
+          disabled={!complementaryFile || !officialFile || isProcessing || isRestoring}
         >
           {isProcessing ? "Conferindo estudantes…" : "Buscar dados no edital"}
         </button>
@@ -128,15 +177,22 @@ export default function App() {
             <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadResult}>
               Baixar resultado separado (.csv) <span aria-hidden="true">↓</span>
             </button>
+            <button className="clear-button" type="button" onClick={startOver}>
+              Limpar arquivos e começar outro edital
+            </button>
           </div>
+        )}
+        {!result && (officialFile || complementaryFile) && (
+          <button className="clear-button" type="button" onClick={startOver}>
+            Limpar arquivos selecionados
+          </button>
         )}
       </section>
 
       <footer className="app__footer">
         <p>
-          O processamento ocorre neste dispositivo. As planilhas selecionadas são lidas sem
-          alteração nem envio a servidores. Os dados encontrados são gravados somente no novo
-          arquivo de resultado.
+          Os arquivos são mantidos localmente para você poder fechar e reabrir o painel sem perder
+          o trabalho. Eles não são enviados a servidores. Clique em “Limpar” quando terminar em um edital.
         </p>
       </footer>
     </main>
