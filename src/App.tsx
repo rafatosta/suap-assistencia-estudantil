@@ -1,3 +1,5 @@
+const RELATORIO_INSCRICOES_URL = "https://suap.ifba.edu.br/ae/relatorio_alunos_inscritos/";
+
 export default function App() {
   return (
     <main className="app">
@@ -5,21 +7,29 @@ export default function App() {
         <div className="app__symbol" aria-hidden="true">SUAP</div>
         <div>
           <h1>Assistência Estudantil</h1>
-          <p className="app__subtitle">Ferramenta auxiliar para fluxos autorizados no SUAP</p>
+          <p className="app__subtitle">Atalhos para tarefas no SUAP</p>
         </div>
       </header>
 
-      <section className="status" aria-labelledby="status-title">
-        <span className="status__label">Estado do projeto</span>
-        <h2 id="status-title">Estrutura inicial</h2>
+      <section className="feature" aria-labelledby="reports-title">
+        <h2 id="reports-title">Planilhas de inscrições</h2>
         <p>
-          A base da extensão está preparada. A importação de planilhas,
-          a navegação no SUAP e a extração de dados ainda não foram implementadas.
+          Acesse a página do SUAP para consultar e baixar a planilha oficial
+          de inscritos em um edital de assistência estudantil.
         </p>
+        <a
+          className="feature__button"
+          href={RELATORIO_INSCRICOES_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Acessar inscrições do edital
+          <span aria-hidden="true">↗</span>
+        </a>
       </section>
 
       <footer className="app__footer">
-        <p>O acesso aos dados depende das permissões da sessão autenticada no SUAP.</p>
+        <p>É necessário estar autenticado no SUAP e ter permissão para acessar os relatórios.</p>
       </footer>
     </main>
   );
