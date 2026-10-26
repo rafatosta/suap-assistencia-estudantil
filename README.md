@@ -30,6 +30,12 @@ Este repositório contém somente o esqueleto inicial de uma extensão Chrome co
 
 **Nenhuma navegação no SUAP, importação de planilhas ou extração de dados foi implementada.**
 
+## Planilhas oficiais de edital
+
+As amostras oficiais `n10.xls` e `n11.xls` fornecidas para análise possuem uma aba (`Planilha1`) e a mesma estrutura de colunas. Esses arquivos devem ser tratados como fontes originais imutáveis: processamento somente leitura; nunca modificar, normalizar no próprio arquivo, renomear colunas ou sobrescrever a planilha original.
+
+Qualquer dado padronizado ou exportado no futuro deve ser salvo separadamente, em um arquivo derivado com nome próprio. A estrutura observada e os requisitos completos estão em [docs/requisitos-planilhas-oficiais.md](docs/requisitos-planilhas-oficiais.md). A importação e extração ainda não estão implementadas.
+
 ## Tecnologias
 
 - [Chrome Extensions — Manifest V3](https://developer.chrome.com/docs/extensions/develop/)
@@ -74,7 +80,7 @@ npm run build
 4. Clique em **Carregar sem compactação**.
 5. Selecione a pasta `dist` gerada pelo Vite.
 
-Depois de alterar o código, execute novamente `npm run build) e recarregue a extensão na página de extensões.
+Depois de alterar o código, execute novamente `npm run build` e recarregue a extensão na página de extensões.
 
 ## Privacidade e segurança
 
