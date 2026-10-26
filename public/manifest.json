@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "SUAP — Assistência Estudantil",
+  "description": "Base de extensão para apoiar fluxos autorizados de assistência estudantil no SUAP.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "SUAP — Assistência Estudantil",
+    "default_popup": "index.html"
+  }
+}
