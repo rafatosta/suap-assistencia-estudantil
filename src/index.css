@@ -27,6 +27,7 @@ h1 { margin: 0; font-size: 16px; line-height: 1.3; }
 .feature__note { margin-top: 12px !important; font-size: 12px !important; }
 .feature__notice { margin-top: 10px !important; padding: 9px 10px; border-left: 3px solid #b06000; border-radius: 4px; background: #fef7e0; color: #6f4b00 !important; font-size: 12px !important; line-height: 1.5 !important; }
 .upload { display: block; margin-top: 16px; color: #202124; font-size: 13px; font-weight: 600; }
+.upload__help { display: block; margin-top: 4px; color: #5f6368; font-size: 11px; font-weight: 400; line-height: 1.45; }
 .upload input { display: block; width: 100%; margin-top: 8px; color: #5f6368; font: inherit; font-size: 12px; font-weight: 400; }
 .file-name { margin-top: 4px !important; overflow-wrap: anywhere; font-size: 11px !important; }
 .process-button { justify-content: center; }
