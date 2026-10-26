@@ -286,7 +286,7 @@ function findOfficialRecord(
       status: "Nome ausente no complementar",
       record: null,
       ambiguous: false,
-      detail: "O nome é obrigatório para localizar o estudante. Preencha o nome completo na planilha complementar.",
+      detail: "Nome obrigatório ausente; preencha o nome completo.",
       candidates: [],
     };
   }
@@ -302,7 +302,7 @@ function findOfficialRecord(
         status: "Identificador não encontrado",
         record: null,
         ambiguous: false,
-        detail: "O identificador informado (" + complementary.identifier + ") não aparece na planilha oficial. Confira matrícula/inscrição e confirme que os dois arquivos são do mesmo edital.",
+        detail: "Identificador " + complementary.identifier + " não localizado; confira matrícula/inscrição e o edital.",
         candidates: [],
       };
     }
@@ -314,7 +314,7 @@ function findOfficialRecord(
         status: "Identificador encontrado, mas nome divergente",
         record: null,
         ambiguous: false,
-        detail: "O identificador existe na planilha oficial, mas está associado a outro nome. Confira se o nome e a matrícula/inscrição pertencem à mesma pessoa.",
+        detail: "O identificador está associado a outro nome no edital; confira se nome e identificador pertencem à mesma pessoa.",
         candidates: identifierMatches,
       };
     }
@@ -325,7 +325,7 @@ function findOfficialRecord(
         status: "Não encontrado",
         record: null,
         ambiguous: false,
-        detail: "O nome não foi localizado na planilha oficial. Confira a grafia e confirme que os dois arquivos são do mesmo edital.",
+        detail: "Nome não localizado; confira a grafia e se os arquivos são do mesmo edital.",
         candidates: [],
       };
     }
@@ -345,10 +345,10 @@ function findOfficialRecord(
 
     const possibleRecords = disambiguated.length > 1 ? disambiguated : candidates;
     return {
-      status: "Ambíguo: " + possibleRecords.length + " correspondências",
+      status: "Correspondência múltipla: " + possibleRecords.length + " entradas",
       record: null,
       ambiguous: true,
-      detail: "Há " + possibleRecords.length + " registros com este nome. Informe matrícula/número de inscrição ou o curso/turma exatamente como aparece no edital para identificar a pessoa.",
+      detail: "Correspondência múltipla; as " + possibleRecords.length + " entradas foram incluídas no resultado.",
       candidates: possibleRecords,
     };
   }
@@ -362,14 +362,14 @@ function findOfficialRecord(
   };
 }
 
-function describeCandidate(record: OfficialRecord, index: number): string {
+function describeCandidate(record: OfficialRecord): string {
   const details = [
     record.name,
     record.extractedEnrollment ? "Matrícula: " + record.extractedEnrollment : "",
     record.registration ? "Inscrição: " + record.registration : "",
     record.course ? "Curso/turma: " + record.course : "",
   ].filter(Boolean);
-  return (index + 1) + ". " + details.join(" | ");
+  return details.join(" | ");
 }
 function csvCell(value: string): string {
   return /[;"\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
@@ -414,55 +414,80 @@ export async function matchComplementaryStudents(
 
   let matchedCount = 0;
   let ambiguousCount = 0;
+  let notFoundCount = 0;
   const errorRows: string[][] = [];
-  const outputRows = complementary.map((entry) => {
+  const outputRows: string[][] = [];
+
+  for (const entry of complementary) {
     const match = findOfficialRecord(entry, official);
-    if (match.record) matchedCount += 1;
+    const foundRecords = match.record
+      ? [match.record]
+      : match.ambiguous
+        ? match.candidates
+        : [];
+
+    if (foundRecords.length > 0) matchedCount += 1;
+    else notFoundCount += 1;
     if (match.ambiguous) ambiguousCount += 1;
 
     if (!match.record) {
       errorRows.push([
         String(entry.sourceRow),
         entry.name,
-        entry.course,
-        entry.identifier,
-        match.status,
-        match.detail,
-        match.candidates.map(describeCandidate).join("\n"),
+        match.detail || match.status,
+        ...match.candidates.map(describeCandidate),
       ]);
     }
 
-    return [
-      String(entry.sourceRow),
-      entry.name,
-      entry.course,
-      entry.identifier,
-      entry.aids,
-      entry.observation,
-      match.status,
-      match.record?.extractedEnrollment ?? "",
-      ...(match.record?.values ?? official.headers.map(() => "")),
-    ];
-  });
+    if (foundRecords.length === 0) {
+      outputRows.push([
+        String(entry.sourceRow),
+        entry.name,
+        entry.course,
+        entry.identifier,
+        entry.aids,
+        entry.observation,
+        match.status,
+        "",
+        ...official.headers.map(() => ""),
+      ]);
+      continue;
+    }
+
+    foundRecords.forEach((record, index) => {
+      const rowStatus = match.ambiguous
+        ? "Correspondência múltipla — entrada " + (index + 1) + " de " + foundRecords.length
+        : match.status;
+      outputRows.push([
+        String(entry.sourceRow),
+        entry.name,
+        entry.course,
+        entry.identifier,
+        entry.aids,
+        entry.observation,
+        rowStatus,
+        record.extractedEnrollment,
+        ...record.values,
+      ]);
+    });
+  }
 
   const toCsv = (rows: string[][]) =>
     rows.map((row) => row.map(csvCell).join(CSV_DELIMITER)).join("\r\n");
   const csv = toCsv([outputHeaders, ...outputRows]);
+  const maxCandidates = errorRows.reduce((maximum, row) => Math.max(maximum, row.length - 3), 0);
   const errorHeaders = [
     "Registro complementar",
-    "Nome completo do estudante",
-    "Curso ou turma informado",
-    "Matrícula ou número de inscrição informado",
-    "Erro identificado",
-    "Detalhe e orientação",
-    "Possíveis correspondências no edital",
+    "Aluno",
+    "Ocorrência",
+    ...Array.from({ length: maxCandidates }, (_, index) => "Entrada " + (index + 1)),
   ];
   const errorsCsv = toCsv([errorHeaders, ...errorRows]);
   return {
     csv: `\uFEFF${csv}\r\n`,
     errorsCsv: `\uFEFF${errorsCsv}\r\n`,
     matchedCount,
-    notFoundCount: complementary.length - matchedCount,
+    notFoundCount,
     ambiguousCount,
     errorCount: errorRows.length,
     totalCount: complementary.length,
