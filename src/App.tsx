@@ -18,7 +18,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
-  const [bankLookupProgress, setBankLookupProgress] = useState("");
+  const [suapLookupProgress, setSuapLookupProgress] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -69,13 +69,13 @@ export default function App() {
     setIsProcessing(true);
     setResult(null);
     setError("");
-    setBankLookupProgress("");
+    setSuapLookupProgress("");
     try {
       const match = await matchComplementaryStudents(
         await complementaryFile.text(),
         officialFile,
-        (completed, total) => setBankLookupProgress(
-          total > 0 ? `Consultando dados bancários no SUAP (${completed}/${total})…` : "",
+        (completed, total) => setSuapLookupProgress(
+          total > 0 ? `Consultando dados acadêmicos e bancários no SUAP (${completed}/${total})…` : "",
         ),
       );
       await saveMatchResult(match);
@@ -84,7 +84,7 @@ export default function App() {
       setError(caught instanceof Error ? caught.message : "Não foi possível processar as planilhas.");
     } finally {
       setIsProcessing(false);
-      setBankLookupProgress("");
+      setSuapLookupProgress("");
     }
   }
 
@@ -174,7 +174,7 @@ export default function App() {
           onClick={handleProcess}
           disabled={!complementaryFile || !officialFile || isProcessing || isRestoring}
         >
-          {bankLookupProgress || (isProcessing ? "Localizando estudantes…" : "Buscar dados bancários")}
+          {suapLookupProgress || (isProcessing ? "Localizando estudantes…" : "Buscar dados do SUAP")}
         </button>
 
         {error && <p className="validation validation--error" role="alert">{error}</p>}
@@ -198,8 +198,8 @@ export default function App() {
               </p>
             )}
             <p className="validation__detail">
-              Banco, Agência, Conta e Operação foram consultados nas inscrições do SUAP. Falhas de consulta
-              aparecem na planilha de erros.
+              CPF, Período de Referência e Curso foram consultados no perfil acadêmico; Banco, Agência, Conta e
+              Operação, na inscrição do SUAP. Falhas de consulta aparecem na planilha de erros.
             </p>
             <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadResult}>
               Baixar resultado complementar (.csv) <span aria-hidden="true">↓</span>
@@ -223,9 +223,9 @@ export default function App() {
 
       <footer className="app__footer">
         <p>
-          As planilhas e os resultados ficam neste dispositivo. Para obter os dados bancários, a extensão
-          consulta as páginas de inscrição no SUAP usando sua sessão autenticada. Clique em “Limpar” quando
-          terminar em um edital.
+          As planilhas e os resultados ficam neste dispositivo. Para obter os dados acadêmicos e bancários, a
+          extensão consulta as páginas do aluno e da inscrição no SUAP usando sua sessão autenticada. Clique em
+          “Limpar” quando terminar em um edital.
         </p>
       </footer>
     </main>

@@ -54,6 +54,13 @@ type BankDetails = {
 };
 
 const BANK_HEADERS = ["Banco", "Agência", "Nº da Conta", "Op"] as const;
+const ACADEMIC_HEADERS = ["CPF (SUAP)", "Período de Referência (SUAP)", "Curso (SUAP)"] as const;
+
+type AcademicDetails = {
+  cpf: string;
+  period: string;
+  course: string;
+};
 
 function bankDetailsFromHtml(html: string): BankDetails {
   const document = new DOMParser().parseFromString(html, "text/html");
@@ -95,6 +102,58 @@ async function fetchBankDetails(registration: string): Promise<BankDetails> {
   const details = bankDetailsFromHtml(await response.text());
   if (!details.bank && !details.agency && !details.account && !details.operation) {
     throw new Error('A inscrição foi aberta, mas a seção "Conta Bancária Escolhida" está vazia.');
+  }
+  return details;
+}
+
+function normalizeAcademicLabel(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function academicDetailsFromHtml(html: string): AcademicDetails {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  const table = Array.from(document.querySelectorAll("table.info")).find((candidate) => {
+    const labels = Array.from(candidate.querySelectorAll("tr > td:first-child"))
+      .map((cell) => normalizeAcademicLabel(cell.textContent ?? ""));
+    return labels.includes("cpf") && labels.includes("periodoreferencia") && labels.includes("curso");
+  });
+  if (!table) throw new Error('A tabela "Dados Gerais" não contém CPF, Período de Referência e Curso.');
+
+  const values = new Map<string, string>();
+  for (const row of Array.from(table.querySelectorAll("tr"))) {
+    const cells = Array.from(row.querySelectorAll(":scope > td"));
+    for (let index = 0; index + 1 < cells.length; index += 1) {
+      const label = normalizeAcademicLabel(cells[index].textContent ?? "");
+      if (["cpf", "periodoreferencia", "curso"].includes(label)) {
+        values.set(label, cells[index + 1].textContent?.trim().replace(/\s+/g, " ") ?? "");
+      }
+    }
+  }
+
+  return {
+    cpf: values.get("cpf") ?? "",
+    period: values.get("periodoreferencia") ?? "",
+    course: values.get("curso") ?? "",
+  };
+}
+
+async function fetchAcademicDetails(enrollment: string): Promise<AcademicDetails> {
+  if (!enrollment) throw new Error("Matrícula ausente no arquivo oficial.");
+  const url = `https://suap.ifba.edu.br/edu/aluno/${encodeURIComponent(enrollment)}/`;
+  let response: Response;
+  try {
+    response = await fetch(url, { credentials: "include", cache: "no-store" });
+  } catch {
+    throw new Error("Não foi possível acessar o perfil do aluno no SUAP. Verifique sua conexão e autenticação.");
+  }
+  if (!response.ok) throw new Error(`O SUAP respondeu com erro HTTP ${response.status}.`);
+  const details = academicDetailsFromHtml(await response.text());
+  if (!details.cpf && !details.period && !details.course) {
+    throw new Error("O perfil acadêmico foi aberto, mas os dados esperados estão vazios.");
   }
   return details;
 }
@@ -448,7 +507,7 @@ function uniqueOfficialHeaders(headers: string[], reserved: Set<string>): string
 export async function matchComplementaryStudents(
   complementaryCsv: string,
   officialFile: File,
-  onBankLookupProgress?: (completed: number, total: number) => void,
+  onSuapLookupProgress?: (completed: number, total: number) => void,
 ): Promise<MatchResult> {
   const complementary = parseComplementaryCsv(complementaryCsv);
   const official = readOfficialWorkbook(await officialFile.arrayBuffer());
@@ -458,6 +517,7 @@ export async function matchComplementaryStudents(
     "Resultado da busca",
     "Matrícula extraída do campo Nome",
     ...BANK_HEADERS,
+    ...ACADEMIC_HEADERS,
   ]);
   const officialHeaders = uniqueOfficialHeaders(official.headers, reservedHeaders);
   const outputHeaders = [
@@ -467,6 +527,7 @@ export async function matchComplementaryStudents(
     "Matrícula extraída do campo Nome",
     ...officialHeaders,
     ...BANK_HEADERS,
+    ...ACADEMIC_HEADERS,
   ];
 
   let matchedCount = 0;
@@ -480,22 +541,32 @@ export async function matchComplementaryStudents(
     match.record ? [match.record] : match.ambiguous ? match.candidates : [],
   );
   const registrations = [...new Set(recordsToLookup.map((record) => record.registration).filter(Boolean))];
+  const enrollments = [...new Set(recordsToLookup.map((record) => record.extractedEnrollment).filter(Boolean))];
   const bankDetailsByRegistration = new Map<string, BankDetails>();
   const bankErrorsByRegistration = new Map<string, string>();
+  const academicDetailsByEnrollment = new Map<string, AcademicDetails>();
+  const academicErrorsByEnrollment = new Map<string, string>();
+  const lookupJobs = [
+    ...registrations.map((registration) => ({ kind: "bank" as const, value: registration })),
+    ...enrollments.map((enrollment) => ({ kind: "academic" as const, value: enrollment })),
+  ];
   let completedLookups = 0;
-  onBankLookupProgress?.(0, registrations.length);
-  for (let start = 0; start < registrations.length; start += 4) {
-    await Promise.all(registrations.slice(start, start + 4).map(async (registration) => {
+  onSuapLookupProgress?.(0, lookupJobs.length);
+  for (let start = 0; start < lookupJobs.length; start += 4) {
+    await Promise.all(lookupJobs.slice(start, start + 4).map(async (job) => {
       try {
-        bankDetailsByRegistration.set(registration, await fetchBankDetails(registration));
+        if (job.kind === "bank") {
+          bankDetailsByRegistration.set(job.value, await fetchBankDetails(job.value));
+        } else {
+          academicDetailsByEnrollment.set(job.value, await fetchAcademicDetails(job.value));
+        }
       } catch (error) {
-        bankErrorsByRegistration.set(
-          registration,
-          error instanceof Error ? error.message : "Falha ao consultar dados bancários no SUAP.",
-        );
+        const detail = error instanceof Error ? error.message : "Falha ao consultar dados no SUAP.";
+        if (job.kind === "bank") bankErrorsByRegistration.set(job.value, detail);
+        else academicErrorsByEnrollment.set(job.value, detail);
       } finally {
         completedLookups += 1;
-        onBankLookupProgress?.(completedLookups, registrations.length);
+        onSuapLookupProgress?.(completedLookups, lookupJobs.length);
       }
     }));
   }
@@ -532,6 +603,7 @@ export async function matchComplementaryStudents(
         "",
         ...official.headers.map(() => ""),
         ...BANK_HEADERS.map(() => ""),
+        ...ACADEMIC_HEADERS.map(() => ""),
       ]);
       continue;
     }
@@ -543,12 +615,23 @@ export async function matchComplementaryStudents(
       const bankDetails = bankDetailsByRegistration.get(record.registration);
       const bankError = bankErrorsByRegistration.get(record.registration)
         ?? (!record.registration ? "Número de inscrição ausente na planilha oficial." : "");
+      const academicDetails = academicDetailsByEnrollment.get(record.extractedEnrollment);
+      const academicError = academicErrorsByEnrollment.get(record.extractedEnrollment)
+        ?? (!record.extractedEnrollment ? "Matrícula não localizada no campo Nome da planilha oficial." : "");
       if (bankError) {
         errorRows.push([
           String(entry.sourceRow),
           entry.name,
           "Dados bancários não extraídos: " + bankError,
           record.registration ? "Inscrição: " + record.registration : "",
+        ]);
+      }
+      if (academicError) {
+        errorRows.push([
+          String(entry.sourceRow),
+          entry.name,
+          "Dados acadêmicos não extraídos: " + academicError,
+          record.extractedEnrollment ? "Matrícula: " + record.extractedEnrollment : "",
         ]);
       }
       outputRows.push([
@@ -565,6 +648,9 @@ export async function matchComplementaryStudents(
         bankDetails?.agency ?? "",
         bankDetails?.account ?? "",
         bankDetails?.operation ?? "",
+        academicDetails?.cpf ?? "",
+        academicDetails?.period ?? "",
+        academicDetails?.course ?? "",
       ]);
     });
   }

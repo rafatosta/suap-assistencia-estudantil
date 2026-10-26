@@ -16,6 +16,7 @@ O painel lateral persistente da extensão oferece:
 - Correspondência por identificador e nome, quando o identificador complementar foi informado; caso contrário, por nome exato normalizado. O curso pode ajudar a desambiguar nomes repetidos.
 - Resultado CSV separado com os campos da entrada, todos os campos encontrados no edital oficial, matrícula extraída do campo combinado de nome quando houver, e status por registro.
 - Consulta autenticada de cada inscrição no SUAP e extração de Banco, Agência, Conta e Operação da seção “Conta Bancária Escolhida”.
+- Consulta autenticada do perfil acadêmico pela matrícula e extração de CPF, Período de Referência e Curso da tabela “Dados Gerais”.
 - Relatório CSV de erros separado, com motivo/orientação para cada pendência e os candidatos detalhados quando a busca for ambígua.
 
 Nomes sem correspondência e identificadores divergentes são sinalizados no resultado completo e listados no segundo CSV. Quando há correspondência ambígua, todas as entradas oficiais encontradas são incluídas em linhas separadas no resultado, identificadas como entrada 1 de N, entrada 2 de N e assim por diante. O relatório de erros identifica esses estudantes e apresenta uma coluna por entrada oficial, com matrícula, inscrição e curso/turma para conferência.
@@ -28,7 +29,7 @@ Na planilha oficial, o campo Nome pode conter o nome do estudante e a matrícula
 
 ## Proteção das fontes e privacidade
 
-As duas planilhas selecionadas são lidas localmente e não são alteradas, renomeadas, normalizadas no próprio arquivo ou sobrescritas. Para sobreviver ao fechamento e à reabertura do painel, os arquivos e o resultado ficam guardados no IndexedDB deste navegador até a pessoa clicar em limpar. O resultado é baixado como um novo arquivo CSV, sem substituir nenhuma entrada. Para consultar os quatro dados bancários, a extensão faz requisições autenticadas às páginas de inscrição do próprio SUAP. A inscrição precisa estar acessível na sessão do navegador; falhas e seções sem dados são relatadas no CSV de erros.
+As duas planilhas selecionadas são lidas localmente e não são alteradas, renomeadas, normalizadas no próprio arquivo ou sobrescritas. Para sobreviver ao fechamento e à reabertura do painel, os arquivos e o resultado ficam guardados no IndexedDB deste navegador até a pessoa clicar em limpar. O resultado é baixado como um novo arquivo CSV, sem substituir nenhuma entrada. Para consultar os dados acadêmicos e bancários, a extensão faz requisições autenticadas às páginas do aluno e da inscrição no próprio SUAP. Falhas e campos ausentes são relatados no CSV de erros.
 
 As amostras oficiais n10.xls e n11.xls analisadas têm uma aba (Planilha1) e colunas como Nome, Campus do Curso, Número da Inscrição, Situação da Inscrição, Auxílios solicitados, Detalhamento, Motivo, histórico de auxílios/bolsas e Situação do Resultado. O arquivo de outros editais pode ter pequenas diferenças; a extensão procura a tabela pelos cabeçalhos e interrompe o processamento quando não reconhece o formato.
 
