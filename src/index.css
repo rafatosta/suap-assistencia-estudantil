@@ -57,29 +57,49 @@ h1 {
   line-height: 1.4;
 }
 
-.status {
+.feature {
   padding: 20px 0;
 }
 
-.status__label {
-  color: #5f6368;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.status h2 {
-  margin: 8px 0;
+.feature h2 {
+  margin: 0 0 8px;
   font-size: 15px;
 }
 
-.status p,
+.feature p,
 .app__footer p {
   margin: 0;
   color: #5f6368;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.feature__button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #1a73e8;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 120ms ease;
+}
+
+.feature__button:hover {
+  background: #1558b0;
+}
+
+.feature__button:focus-visible {
+  outline: 2px solid #174ea6;
+  outline-offset: 3px;
 }
 
 .app__footer {
