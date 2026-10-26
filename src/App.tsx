@@ -172,14 +172,20 @@ export default function App() {
         {result && (
           <div className="validation" role="status">
             <p>
-              {result.matchedCount} de {result.totalCount} estudante(s) encontrado(s).
-              {result.errorCount > 0 && ` ${result.errorCount} registro(s) precisam de conferência; ${result.ambiguousCount} com correspondências ambíguas.`}
+              {result.matchedCount} de {result.totalCount} estudante(s) localizaram ao menos uma entrada oficial.
+              O resultado contém {result.outputRowCount} linha(s).
+              {result.errorCount > 0 && ` ${result.errorCount} registro(s) listados na planilha de erros.`}
               {result.errorCount === 0 && " Nenhum erro encontrado."}
             </p>
+            {result.ambiguousCount > 0 && (
+              <p className="validation__detail">
+                {result.ambiguousCount} estudante(s) têm mais de uma entrada oficial; cada entrada foi incluída em uma linha separada no resultado.
+              </p>
+            )}
             {result.notFoundCount > 0 && (
               <p className="validation__detail">
                 {result.notFoundCount} registro(s) sem correspondência única. Baixe o relatório de erros
-                para ver o motivo e as possíveis correspondências.
+                para ver o motivo e, nos casos ambíguos, as entradas incluídas.
               </p>
             )}
             <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadResult}>
