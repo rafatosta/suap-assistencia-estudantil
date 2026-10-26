@@ -446,7 +446,7 @@ export async function matchComplementaryStudents(
   });
 
   const toCsv = (rows: string[][]) =>
-    rows.map((row) => row.map(csvCell).join(CSV_DELIMITER)).join("\\r\\n");
+    rows.map((row) => row.map(csvCell).join(CSV_DELIMITER)).join("\r\n");
   const csv = toCsv([outputHeaders, ...outputRows]);
   const errorHeaders = [
     "Registro complementar",
