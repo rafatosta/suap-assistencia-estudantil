@@ -32,7 +32,7 @@ Este repositório contém o esqueleto inicial de uma extensão Chrome com React,
 
 ## Planilha complementar
 
-A extensão oferece um modelo CSV com uma linha por estudante. Os campos obrigatórios são `Nome completo do estudante` e `Auxílios solicitados`; se houver vários auxílios, eles permanecem juntos em uma única célula. A interface avisa para preservar os cabeçalhos e permite selecionar o arquivo preenchido para uma conferência local. Colunas extras são ignoradas.
+A extensão oferece um modelo CSV com uma linha por estudante e **um arquivo por edital**. Não misture estudantes ou informações de editais diferentes na mesma planilha. Os campos obrigatórios são `Nome completo do estudante` e `Auxílios solicitados`; se houver vários auxílios, eles permanecem juntos em uma única célula. A interface avisa para preservar os cabeçalhos e permite selecionar o arquivo preenchido para uma conferência local. Colunas extras são ignoradas.
 
 O arquivo-modelo e os detalhes da validação estão em [docs/entrada-planilhas-complementares.md](docs/entrada-planilhas-complementares.md). A validação atual aceita CSV separado por ponto e vírgula; não interpreta arquivos XLSX.
 
