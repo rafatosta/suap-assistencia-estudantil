@@ -12,7 +12,6 @@ A extensão deverá operar dentro dos limites de acesso definidos pelo próprio 
 
 ## Escopo planejado
 
-- Importar uma lista de inscrições ou matrículas a partir de arquivo CSV ou XLSX.
 - Consultar, de forma sequencial, as páginas do SUAP necessárias ao edital.
 - Extrair apenas os campos definidos para o fluxo autorizado.
 - Apresentar os resultados e permitir sua exportação para CSV ou XLSX.
@@ -22,19 +21,26 @@ Esses itens descrevem objetivos futuros; não indicam funcionalidades já dispon
 
 ## Estado atual
 
-Este repositório contém somente o esqueleto inicial de uma extensão Chrome com React, TypeScript e Vite:
+Este repositório contém o esqueleto inicial de uma extensão Chrome com React, TypeScript e Vite:
 
 - Manifest V3 mínimo.
-- Aplicação popup de exemplo.
-- Configuração de desenvolvimento e compilação.
+- Aplicação popup com atalho para o relatório oficial de inscritos.
+- Modelo CSV baixável para planilhas complementares.
+- Validação local dos cabeçalhos e campos obrigatórios do CSV selecionado.
 
-**Nenhuma navegação no SUAP, importação de planilhas ou extração de dados foi implementada.**
+**A extensão ainda não consulta o SUAP para buscar ou extrair dados de estudantes.** A validação da planilha não envia nem armazena os dados.
+
+## Planilha complementar
+
+A extensão oferece um modelo CSV com uma linha por estudante. Os campos obrigatórios são `Nome completo do estudante` e `Auxílios solicitados`; se houver vários auxílios, eles permanecem juntos em uma única célula. A interface avisa para preservar os cabeçalhos e permite selecionar o arquivo preenchido para uma conferência local. Colunas extras são ignoradas.
+
+O arquivo-modelo e os detalhes da validação estão em [docs/entrada-planilhas-complementares.md](docs/entrada-planilhas-complementares.md). A validação atual aceita CSV separado por ponto e vírgula; não interpreta arquivos XLSX.
 
 ## Planilhas oficiais de edital
 
 As amostras oficiais `n10.xls` e `n11.xls` fornecidas para análise possuem uma aba (`Planilha1`) e a mesma estrutura de colunas. Esses arquivos devem ser tratados como fontes originais imutáveis: processamento somente leitura; nunca modificar, normalizar no próprio arquivo, renomear colunas ou sobrescrever a planilha original.
 
-Qualquer dado padronizado ou exportado no futuro deve ser salvo separadamente, em um arquivo derivado com nome próprio. A estrutura observada e os requisitos completos estão em [docs/requisitos-planilhas-oficiais.md](docs/requisitos-planilhas-oficiais.md). A importação e extração ainda não estão implementadas.
+Qualquer dado padronizado ou exportado no futuro deve ser salvo separadamente, em um arquivo derivado com nome próprio. A estrutura observada e os requisitos completos estão em [docs/requisitos-planilhas-oficiais.md](docs/requisitos-planilhas-oficiais.md). A leitura dessas fontes e a extração de dados ainda não estão implementadas.
 
 ## Tecnologias
 
