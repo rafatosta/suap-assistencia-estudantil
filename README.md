@@ -17,7 +17,7 @@ O painel lateral persistente da extensão oferece:
 - Resultado CSV separado com os campos da entrada, todos os campos encontrados no edital oficial, matrícula extraída do campo combinado de nome quando houver, e status por registro.
 - Relatório CSV de erros separado, com motivo/orientação para cada pendência e os candidatos detalhados quando a busca for ambígua.
 
-Nomes sem correspondência, identificadores divergentes e correspondências ambíguas são sinalizados no resultado completo e reunidos também em um segundo CSV de erros. Esse relatório explica o motivo e, quando existem homônimos, lista nome, matrícula, inscrição e curso/turma dos possíveis registros. A extensão não escolhe automaticamente entre vários estudantes possíveis.
+Nomes sem correspondência e identificadores divergentes são sinalizados no resultado completo e listados no segundo CSV. Quando há correspondência ambígua, todas as entradas oficiais encontradas são incluídas em linhas separadas no resultado, identificadas como entrada 1 de N, entrada 2 de N e assim por diante. O relatório de erros identifica esses estudantes e apresenta uma coluna por entrada oficial, com matrícula, inscrição e curso/turma para conferência.
 
 ## Regras das planilhas
 
