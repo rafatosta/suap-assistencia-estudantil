@@ -163,6 +163,9 @@ export default function App() {
           Não altere os cabeçalhos. Nome completo e auxílios solicitados são obrigatórios.
           Se houver mais de um auxílio, informe todos na mesma célula. Colunas extras serão ignoradas.
         </p>
+        <p className="feature__notice" role="note">
+          Importante: use uma planilha por edital. Não misture dados de editais diferentes no mesmo arquivo.
+        </p>
 
         <label className="upload">
           <span>{isReading ? "Lendo arquivo…" : "Selecionar planilha preenchida"}</span>
