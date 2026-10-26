@@ -72,9 +72,9 @@ export default function App() {
       <section className="feature feature--template" aria-labelledby="template-title">
         <h2 id="template-title">Completar dados do edital</h2>
         <p>
-          Selecione a planilha complementar preenchida e a planilha oficial completa
-          do mesmo edital. A extensão procura cada estudante e acrescenta ao resultado
-          os dados encontrados na planilha oficial.
+          Para cada processamento, são necessários dois arquivos do mesmo edital:
+          a planilha completa do edital e a planilha complementar preenchida. A extensão
+          procura cada estudante do complementar na planilha do edital e gera um resultado separado.
         </p>
         <a className="feature__button feature__button--secondary" href={TEMPLATE_URL} download>
           Baixar modelo complementar (.csv) <span aria-hidden="true">↓</span>
@@ -90,16 +90,18 @@ export default function App() {
         </p>
 
         <label className="upload">
-          <span>1. Planilha complementar preenchida</span>
-          <input type="file" accept=".csv,text/csv" onChange={handleComplementaryChange} />
-        </label>
-        {complementaryFile && <p className="file-name">{complementaryFile.name}</p>}
-
-        <label className="upload">
-          <span>2. Planilha oficial completa (.xls ou .xlsx)</span>
+          <span>1. Planilha do edital completa (.xls ou .xlsx)</span>
+          <small className="upload__help">Arquivo oficial baixado do SUAP, com os dados completos dos estudantes.</small>
           <input type="file" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleOfficialChange} />
         </label>
-        {officialFile && <p className="file-name">{officialFile.name}</p>}
+        {officialFile && <p className="file-name">Arquivo do edital: {officialFile.name}</p>}
+
+        <label className="upload">
+          <span>2. Planilha complementar preenchida (.csv)</span>
+          <small className="upload__help">Arquivo preenchido com os estudantes que precisam ter os dados completados.</small>
+          <input type="file" accept=".csv,text/csv" onChange={handleComplementaryChange} />
+        </label>
+        {complementaryFile && <p className="file-name">Arquivo complementar: {complementaryFile.name}</p>}
 
         <button
           className="feature__button process-button"
