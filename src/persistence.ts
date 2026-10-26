@@ -30,7 +30,7 @@ function openDatabase(): Promise<IDBDatabase> {
 
 async function readDraft(): Promise<Draft> {
   const database = await openDatabase();
-  return new Promise((resolve, reject) => {
+  return new Promise<Draft>((resolve, reject) => {
     const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(DRAFT_KEY);
     request.onsuccess = () => resolve((request.result as Draft | undefined) ?? {});
     request.onerror = () => reject(request.error ?? new Error("Não foi possível recuperar os arquivos salvos."));
@@ -39,7 +39,7 @@ async function readDraft(): Promise<Draft> {
 
 async function writeDraft(draft: Draft): Promise<void> {
   const database = await openDatabase();
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, "readwrite");
     transaction.objectStore(STORE_NAME).put(draft, DRAFT_KEY);
     transaction.oncomplete = () => resolve();
@@ -87,7 +87,7 @@ export async function saveMatchResult(result: MatchResult): Promise<void> {
 
 export async function clearDraft(): Promise<void> {
   const database = await openDatabase();
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, "readwrite");
     transaction.objectStore(STORE_NAME).delete(DRAFT_KEY);
     transaction.oncomplete = () => resolve();
