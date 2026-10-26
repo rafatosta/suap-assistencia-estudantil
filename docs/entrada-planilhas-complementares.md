@@ -4,6 +4,8 @@
 
 A extensão disponibiliza `public/modelo-planilha-complementar.csv`, um arquivo UTF-8 separado por ponto e vírgula que pode ser aberto em aplicativos de planilha. O modelo contém uma linha de cabeçalho e uma linha por estudante.
 
+**Cada planilha deve corresponder a um único edital. Não misture estudantes ou informações de editais diferentes no mesmo arquivo.** Baixe e preencha um arquivo separado para cada edital.
+
 Cabeçalhos na ordem do modelo:
 
 1. `Nome completo do estudante` — obrigatório.
@@ -30,6 +32,7 @@ A extensão não envia o arquivo a um servidor, não o modifica e não armazena 
 
 - Não renomear, apagar ou reordenar os cabeçalhos.
 - Não mesclar células nem inserir títulos, subtítulos ou linhas em branco no meio da tabela.
+- Usar uma planilha por edital; nunca combinar dois editais no mesmo arquivo.
 - Manter uma linha por estudante.
 - Informar todos os auxílios de um estudante no mesmo campo `Auxílios solicitados`; não criar uma linha para cada auxílio.
 - Informações adicionais devem ficar em colunas próprias; colunas não previstas são ignoradas pela validação atual.
