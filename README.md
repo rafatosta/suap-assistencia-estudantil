@@ -17,6 +17,7 @@ O painel lateral persistente da extensão oferece:
 - Resultado CSV separado com os campos da entrada, todos os campos encontrados no edital oficial, matrícula extraída do campo combinado de nome quando houver, e status por registro.
 - Consulta autenticada de cada inscrição no SUAP e extração de Banco, Agência, Conta e Operação da seção “Conta Bancária Escolhida”.
 - Consulta autenticada do perfil acadêmico pela matrícula e extração de CPF, Período de Referência e Curso da tabela “Dados Gerais”.
+- Planilha Excel compatível com a saída SUAPy, com as 11 colunas usadas pelo PAAE e uma segunda planilha filtrada para estudantes sem dados bancários completos.
 - Relatório CSV de erros separado, com motivo/orientação para cada pendência e os candidatos detalhados quando a busca for ambígua.
 
 Nomes sem correspondência e identificadores divergentes são sinalizados no resultado completo e listados no segundo CSV. Quando há correspondência ambígua, todas as entradas oficiais encontradas são incluídas em linhas separadas no resultado, identificadas como entrada 1 de N, entrada 2 de N e assim por diante. O relatório de erros identifica esses estudantes e apresenta uma coluna por entrada oficial, com matrícula, inscrição e curso/turma para conferência.

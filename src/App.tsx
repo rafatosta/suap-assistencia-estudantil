@@ -105,6 +105,32 @@ export default function App() {
     if (result) downloadCsv(result.errorsCsv, "erros-complementares.csv");
   }
 
+  function downloadWorkbook(workbook: ArrayBuffer | undefined, filename: string) {
+    if (!workbook) return;
+    const url = URL.createObjectURL(new Blob([workbook], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function reportTimestamp() {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}h${pad(now.getMinutes())}`;
+  }
+
+  function downloadSuapyWorkbook() {
+    if (result) downloadWorkbook(result.suapyWorkbook, `PAAE-dados_${reportTimestamp()}.xlsx`);
+  }
+
+  function downloadMissingBankWorkbook() {
+    if (result) downloadWorkbook(result.missingBankWorkbook, `PAAE-sem-conta_${reportTimestamp()}.xlsx`);
+  }
+
   async function startOver() {
     try {
       await clearDraft();
@@ -201,6 +227,14 @@ export default function App() {
               CPF, Período de Referência e Curso foram consultados no perfil acadêmico; Banco, Agência, Conta e
               Operação, na inscrição do SUAP. Falhas de consulta aparecem na planilha de erros.
             </p>
+            <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadSuapyWorkbook}>
+              Baixar saída no formato SUAPy (.xlsx) <span aria-hidden="true">↓</span>
+            </button>
+            {(result.missingBankCount ?? 0) > 0 && (
+              <button className="feature__button error-download-button" type="button" onClick={downloadMissingBankWorkbook}>
+                Baixar alunos sem conta bancária ({result.missingBankCount}) (.xlsx) <span aria-hidden="true">↓</span>
+              </button>
+            )}
             <button className="feature__button feature__button--secondary download-button" type="button" onClick={downloadResult}>
               Baixar resultado complementar (.csv) <span aria-hidden="true">↓</span>
             </button>

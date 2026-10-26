@@ -38,6 +38,9 @@ type OfficialTable = {
 export type MatchResult = {
   csv: string;
   errorsCsv: string;
+  suapyWorkbook?: ArrayBuffer;
+  missingBankWorkbook?: ArrayBuffer;
+  missingBankCount?: number;
   matchedCount: number;
   notFoundCount: number;
   ambiguousCount: number;
@@ -55,6 +58,32 @@ type BankDetails = {
 
 const BANK_HEADERS = ["Banco", "Agência", "Nº da Conta", "Op"] as const;
 const ACADEMIC_HEADERS = ["CPF (SUAP)", "Período de Referência (SUAP)", "Curso (SUAP)"] as const;
+const SUAPY_OUTPUT_HEADERS = [
+  "Inscrição",
+  "Matrícula",
+  "Nome",
+  "Curso:",
+  "Periodo",
+  "CPF",
+  "Banco",
+  "Agência",
+  "No da Conta",
+  "Tipo de Conta",
+  "Op.",
+] as const;
+
+const SAVINGS_OPERATIONS: Record<string, string[]> = {
+  "CAIXA ECONÔMICA": ["013", "1288"],
+  "BANCO DO BRASIL": ["51"],
+  BRADESCO: ["013"],
+  NUBANK: [],
+  INTER: ["51"],
+  PICPAY: [],
+  C6: [],
+  "MERCADO PAGO": [],
+  NEXT: [],
+  ITAU: ["500"],
+};
 
 type AcademicDetails = {
   cpf: string;
@@ -156,6 +185,26 @@ async function fetchAcademicDetails(enrollment: string): Promise<AcademicDetails
     throw new Error("O perfil acadêmico foi aberto, mas os dados esperados estão vazios.");
   }
   return details;
+}
+
+function accountType(bank: string, operation: string): string {
+  const savingsOperations = SAVINGS_OPERATIONS[bank];
+  if (!savingsOperations) return "";
+  return savingsOperations.includes(operation) ? "Poupança" : "Corrente";
+}
+
+function createSuapyWorkbook(rows: string[][]): ArrayBuffer {
+  const worksheet = XLSX.utils.aoa_to_sheet([[...SUAPY_OUTPUT_HEADERS], ...rows]);
+  worksheet["!cols"] = SUAPY_OUTPUT_HEADERS.map((header, columnIndex) => {
+    const longestCell = rows.reduce(
+      (longest, row) => Math.max(longest, (row[columnIndex] ?? "").length),
+      header.length,
+    );
+    return { wch: longestCell + 2 };
+  });
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha");
+  return XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
 }
 
 function cellText(value: unknown): string {
@@ -535,6 +584,8 @@ export async function matchComplementaryStudents(
   let notFoundCount = 0;
   const errorRows: string[][] = [];
   const outputRows: string[][] = [];
+  const suapyRows: string[][] = [];
+  const missingBankRows: string[][] = [];
 
   const decisions = complementary.map((entry) => ({ entry, match: findOfficialRecord(entry, official) }));
   const recordsToLookup = decisions.flatMap(({ match }) =>
@@ -634,6 +685,23 @@ export async function matchComplementaryStudents(
           record.extractedEnrollment ? "Matrícula: " + record.extractedEnrollment : "",
         ]);
       }
+      const suapyRow = [
+        record.registration,
+        record.extractedEnrollment,
+        record.name,
+        academicDetails?.course ?? "",
+        academicDetails?.period ?? "",
+        academicDetails?.cpf ?? "",
+        bankDetails?.bank ?? "",
+        bankDetails?.agency ?? "",
+        bankDetails?.account ?? "",
+        accountType(bankDetails?.bank ?? "", bankDetails?.operation ?? ""),
+        bankDetails?.operation ?? "",
+      ];
+      suapyRows.push(suapyRow);
+      if (!(bankDetails?.bank && bankDetails.agency && bankDetails.account && bankDetails.operation)) {
+        missingBankRows.push(suapyRow);
+      }
       outputRows.push([
         String(entry.sourceRow),
         entry.name,
@@ -669,6 +737,9 @@ export async function matchComplementaryStudents(
   return {
     csv: `\uFEFF${csv}\r\n`,
     errorsCsv: `\uFEFF${errorsCsv}\r\n`,
+    suapyWorkbook: createSuapyWorkbook(suapyRows),
+    missingBankWorkbook: createSuapyWorkbook(missingBankRows),
+    missingBankCount: missingBankRows.length,
     matchedCount,
     notFoundCount,
     ambiguousCount,
