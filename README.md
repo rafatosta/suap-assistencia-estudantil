@@ -8,7 +8,7 @@ A extensão ajuda a complementar dados de estudantes a partir de dois arquivos d
 
 ## Estado atual
 
-O popup da extensão oferece:
+O painel lateral persistente da extensão oferece:
 
 - Atalho para o relatório oficial de inscritos no SUAP.
 - Modelo CSV baixável para a entrada complementar, com um registro por estudante e um arquivo por edital.
@@ -44,7 +44,7 @@ O modelo e as instruções estão em [docs/entrada-planilhas-complementares.md](
 
 - Node.js em versão LTS compatível com a versão instalada do Vite.
 - npm.
-- Google Chrome ou navegador Chromium compatível.
+- Google Chrome 114 ou posterior (necessário para o painel lateral) ou navegador Chromium compatível.
 
 ## Desenvolvimento
 
