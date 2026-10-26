@@ -97,9 +97,75 @@ h1 {
   background: #1558b0;
 }
 
-.feature__button:focus-visible {
+.feature__button:focus-visible,
+.upload input:focus-visible {
   outline: 2px solid #174ea6;
   outline-offset: 3px;
+}
+
+.feature__button--secondary {
+  background: #e8f0fe;
+  color: #174ea6;
+}
+
+.feature__button--secondary:hover {
+  background: #d2e3fc;
+}
+
+.feature__note {
+  margin-top: 12px !important;
+  font-size: 12px !important;
+}
+
+.upload {
+  display: block;
+  margin-top: 14px;
+  color: #202124;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.upload input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  color: #5f6368;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.validation {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #e6f4ea;
+}
+
+.validation p {
+  color: #137333;
+  font-size: 12px;
+}
+
+.validation ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #7a4f01;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.validation--warning {
+  background: #fef7e0;
+}
+
+.validation--error {
+  margin-top: 12px !important;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fce8e6;
+  color: #b3261e !important;
+  font-size: 12px !important;
 }
 
 .app__footer {
