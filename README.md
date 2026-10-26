@@ -15,8 +15,9 @@ O painel lateral persistente da extensão oferece:
 - Leitura local de CSV complementar e arquivo oficial XLS/XLSX.
 - Correspondência por identificador e nome, quando o identificador complementar foi informado; caso contrário, por nome exato normalizado. O curso pode ajudar a desambiguar nomes repetidos.
 - Resultado CSV separado com os campos da entrada, todos os campos encontrados no edital oficial, matrícula extraída do campo combinado de nome quando houver, e status por registro.
+- Relatório CSV de erros separado, com motivo/orientação para cada pendência e os candidatos detalhados quando a busca for ambígua.
 
-Nomes sem correspondência, identificadores divergentes e correspondências ambíguas são sinalizados no resultado. A extensão não escolhe automaticamente entre vários estudantes possíveis.
+Nomes sem correspondência, identificadores divergentes e correspondências ambíguas são sinalizados no resultado completo e reunidos também em um segundo CSV de erros. Esse relatório explica o motivo e, quando existem homônimos, lista nome, matrícula, inscrição e curso/turma dos possíveis registros. A extensão não escolhe automaticamente entre vários estudantes possíveis.
 
 ## Regras das planilhas
 
