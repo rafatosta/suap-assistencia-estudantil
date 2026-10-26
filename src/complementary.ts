@@ -42,6 +42,7 @@ export type MatchResult = {
   notFoundCount: number;
   ambiguousCount: number;
   errorCount: number;
+  outputRowCount: number;
   totalCount: number;
 };
 
@@ -490,6 +491,7 @@ export async function matchComplementaryStudents(
     notFoundCount,
     ambiguousCount,
     errorCount: errorRows.length,
+    outputRowCount: outputRows.length,
     totalCount: complementary.length,
   };
 }
